@@ -270,10 +270,10 @@ function initMap() {
   const center = BAGHDAD.contains(db.center) ? db.center : [33.3152, 44.3661];
   map = L.map('map', { preferCanvas: true, zoomAnimation: true, maxBounds: BAGHDAD, maxBoundsViscosity: 1, minZoom: 10 })
     .setView(center, Math.max(db.zoom, 10));
-  // خرائط CARTO أسرع من سيرفر OpenStreetMap الرئيسي، وتنحفظ بالجوال بعد أول فتح (sw.js)
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
-    subdomains: 'abcd', maxZoom: 19, minZoom: 10, bounds: BAGHDAD, detectRetina: false, updateWhenIdle: true, keepBuffer: 4,
-    attribution: '© OpenStreetMap © CARTO',
+  // خرائط OpenStreetMap المجانية (بدون مفتاح)، وتنحفظ بالجوال بعد أول فتح (sw.js)
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, minZoom: 10, bounds: BAGHDAD, crossOrigin: true, detectRetina: false, updateWhenIdle: true, keepBuffer: 4,
+    attribution: '© OpenStreetMap',
   }).addTo(map);
   markers = L.layerGroup().addTo(map);
   routeLayer = L.layerGroup().addTo(map);
