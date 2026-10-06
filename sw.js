@@ -1,6 +1,6 @@
-const CACHE = 'mandaba-v3';
+const CACHE = 'mandaba-v4';
 const TILES = 'mandaba-tiles';
-const ASSETS = ['./', 'index.html', 'style.css', 'app.js', 'manifest.json', 'icon.svg', 'icon-192.png',
+const ASSETS = ['./', 'index.html', 'style.css', 'app.js', 'firebase-config.js', 'manifest.json', 'icon.svg', 'icon-192.png',
   'vendor/leaflet/leaflet.css', 'vendor/leaflet/leaflet.js'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));

@@ -17,7 +17,7 @@
 </head>
 <body>
 <header class="top">
-  <h1 id="pageTitle">جولاتي</h1>
+  <h1><span id="pageTitle">جولاتي</span> <small id="syncDot"></small></h1>
   <p id="pageSub"></p>
 </header>
 
@@ -81,6 +81,25 @@
     <div class="row">
       <input id="newArea" placeholder="اسم منطقة جديدة">
       <button class="btn" id="btnAddArea">إضافة</button>
+    </div>
+    <h2>☁️ حفظ البيانات بالسحابة</h2>
+    <div class="card">
+      <p id="syncStatus" style="margin:0 0 8px;font-weight:700"></p>
+      <div id="syncSetup" hidden>
+        <p class="muted">الصق هنا كود firebaseConfig من مشروع Firebase مالتك (مرة وحدة بس).</p>
+        <textarea id="fbConfig" rows="4" dir="ltr" placeholder="const firebaseConfig = { apiKey: ... }"></textarea>
+        <button class="btn wide" id="btnSaveConfig">حفظ</button>
+      </div>
+      <div id="syncLogin" hidden>
+        <label>الإيميل<input id="syncEmail" type="email" dir="ltr" autocomplete="username"></label>
+        <label>كلمة السر<input id="syncPass" type="password" dir="ltr" autocomplete="current-password"></label>
+        <div class="row"><button class="btn" id="btnSignIn">دخول</button><button class="btn outline" id="btnSignUp">حساب جديد</button></div>
+        <button class="btn link small" id="btnResetPass">نسيت كلمة السر</button>
+      </div>
+      <div id="syncOn" hidden>
+        <p class="muted">كل تعديل ينحفظ بالسحابة وحده. إذا فتحت التطبيق بجوال ثاني وسجلت بنفس الحساب، تنزل بياناتك كلها.</p>
+        <div class="row"><button class="btn outline" id="btnSyncNow">🔄 زامن هسه</button><button class="btn link" id="btnSignOut">خروج</button></div>
+      </div>
     </div>
     <h2>نسخة احتياطية</h2>
     <p class="muted">البيانات محفوظة على هذا الجوال فقط. سوّي نسخة احتياطية بين فترة وفترة حتى ما تضيع.</p>
@@ -182,6 +201,7 @@
 
 <div id="toast"></div>
 <script src="vendor/leaflet/leaflet.js" defer></script>
+<script src="firebase-config.js" defer></script>
 <script src="app.js" defer></script>
 </body>
 </html>

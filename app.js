@@ -23,7 +23,9 @@ function migrate(d) {
   d.version = 2;
   return d;
 }
-function save() { localStorage.setItem(KEY, JSON.stringify(db)); }
+// persist: يحفظ بالجوال بس. save: تعديل حقيقي، يحدّث الوقت ويرفع للسحابة
+function persist() { localStorage.setItem(KEY, JSON.stringify(db)); }
+function save() { db.updatedAt = Date.now(); persist(); Sync.changed(); }
 
 // ================= أدوات =================
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -275,7 +277,7 @@ function initMap() {
   }).addTo(map);
   markers = L.layerGroup().addTo(map);
   routeLayer = L.layerGroup().addTo(map);
-  map.on('moveend', () => { const c = map.getCenter(); db.center = [c.lat, c.lng]; db.zoom = map.getZoom(); save(); });
+  map.on('moveend', () => { const c = map.getCenter(); db.center = [c.lat, c.lng]; db.zoom = map.getZoom(); persist(); });
   map.on('contextmenu', e => openPharmForm(null, { lat: e.latlng.lat.toFixed(6), lng: e.latlng.lng.toFixed(6) }));
   setTimeout(() => $('#mapHint').style.display = 'none', 6000);
   renderMap();
@@ -650,13 +652,122 @@ $('#fileImport').onchange = async e => {
 };
 
 // ================= العرض =================
+// ================= المزامنة مع السحابة (Firebase) =================
+const Sync = (() => {
+  const V = '10.14.1', BASE = `https://www.gstatic.com/firebasejs/${V}/`;
+  let auth = null, fs = null, user = null, unsub = null, timer = null, state = 'off', lastSync = null, lastErr = '';
+  const cfg = () => { try { return window.FIREBASE_CONFIG || JSON.parse(localStorage.getItem('mandaba-fbconfig') || 'null'); } catch (e) { return null; } };
+  const syncedKey = () => 'mandaba-synced-' + (user ? user.uid : '');
+  function loadScript(src) {
+    return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+  }
+  async function init() {
+    if (!cfg()) return setState('off');
+    setState('loading');
+    try {
+      await loadScript(BASE + 'firebase-app-compat.js');
+      await Promise.all([loadScript(BASE + 'firebase-auth-compat.js'), loadScript(BASE + 'firebase-firestore-compat.js')]);
+      if (!firebase.apps.length) firebase.initializeApp(cfg());
+      auth = firebase.auth(); fs = firebase.firestore();
+    } catch (e) { lastErr = 'ما كدرت أحمّل خدمة المزامنة (النت؟)'; return setState('error'); }
+    auth.onAuthStateChanged(u => {
+      user = u; if (unsub) { unsub(); unsub = null; }
+      if (u) listen(); else setState('signedout');
+    });
+  }
+  const ref = () => fs.collection('users').doc(user.uid).collection('state').doc('main');
+  function listen() {
+    setState('syncing');
+    unsub = ref().onSnapshot({ includeMetadataChanges: false }, snap => {
+      if (snap.metadata.hasPendingWrites) return;
+      const firstTime = !localStorage.getItem(syncedKey());
+      if (!snap.exists) { push(); return; }
+      const r = snap.data(), localT = db.updatedAt || 0;
+      if (r.updatedAt === localT) { markSynced(); return; }
+      // أول مرة بهذا الجوال وبيه بيانات: نسأل قبل ما نكتب فوكها
+      if (firstTime && db.pharmacies.length) {
+        const n = (JSON.parse(r.data).pharmacies || []).length;
+        if (confirm(`اكو بالسحابة ${n} صيدلية، وبهذا الجوال ${db.pharmacies.length}.\nموافق = آخذ اللي بالسحابة\nإلغاء = أرفع اللي بهذا الجوال فوكها`)) apply(r); else push();
+        return;
+      }
+      if (r.updatedAt > localT) apply(r); else push();
+    }, err => { lastErr = err.message; setState('error'); });
+  }
+  function apply(r) {
+    db = migrate(JSON.parse(r.data)); db.updatedAt = r.updatedAt; persist(); render(); markSynced();
+  }
+  async function push() {
+    if (!user) return;
+    if (!db.updatedAt) db.updatedAt = Date.now();
+    setState('syncing');
+    try {
+      await ref().set({ data: JSON.stringify(db), updatedAt: db.updatedAt, at: new Date().toISOString() });
+      markSynced();
+    } catch (e) { lastErr = e.message; setState('error'); }
+  }
+  function markSynced() { localStorage.setItem(syncedKey(), '1'); lastSync = new Date(); setState('ok'); }
+  function changed() { if (!user) return; clearTimeout(timer); timer = setTimeout(push, 1500); setState('syncing'); }
+  const AUTH_ERR = {
+    'auth/invalid-credential': 'الإيميل أو كلمة السر غلط', 'auth/wrong-password': 'كلمة السر غلط', 'auth/user-not-found': 'ماكو حساب بهذا الإيميل',
+    'auth/email-already-in-use': 'الإيميل مسجل قبل، اضغط دخول', 'auth/weak-password': 'كلمة السر لازم 6 أحرف أو أكثر',
+    'auth/invalid-email': 'الإيميل مو صحيح', 'auth/network-request-failed': 'ماكو نت', 'auth/too-many-requests': 'محاولات كثيرة، انتظر شوية',
+    'auth/operation-not-allowed': 'لازم تفعّل Email/Password بـ Firebase',
+  };
+  async function signIn(email, pass, create) {
+    try {
+      if (create) await auth.createUserWithEmailAndPassword(email, pass);
+      else await auth.signInWithEmailAndPassword(email, pass);
+      toast('تم الدخول ☁️');
+    } catch (e) { toast(AUTH_ERR[e.code] || e.message); }
+  }
+  async function reset(email) {
+    try { await auth.sendPasswordResetEmail(email); toast('دزيتلك رابط على الإيميل'); } catch (e) { toast(AUTH_ERR[e.code] || e.message); }
+  }
+  function setState(s) { state = s; renderSync(); }
+  return {
+    init, changed, signIn, reset, push,
+    signOut: () => auth && auth.signOut(),
+    info: () => ({ state, user, lastSync, lastErr, configured: !!cfg() }),
+  };
+})();
+
+function renderSync() {
+  const i = Sync.info(), box = $('#syncStatus');
+  if (!box) return;
+  $('#syncSetup').hidden = i.configured;
+  $('#syncLogin').hidden = !(i.configured && !i.user && i.state !== 'loading');
+  $('#syncOn').hidden = !i.user;
+  const icon = { ok: '✅', syncing: '🔄', error: '⚠️', loading: '⏳', signedout: '☁️', off: '☁️' }[i.state];
+  box.textContent = !i.configured ? '☁️ المزامنة مو مفعّلة بعد'
+    : i.state === 'loading' ? '⏳ دا أتصل...'
+    : !i.user ? (i.state === 'error' ? '⚠️ ' + i.lastErr : '☁️ سجّل دخول حتى تنحفظ بياناتك بالسحابة')
+    : `${icon} ${i.user.email}` + (i.state === 'ok' && i.lastSync ? ` · آخر مزامنة ${i.lastSync.toLocaleTimeString('ar-IQ-u-nu-latn', { hour: '2-digit', minute: '2-digit' })}` : i.state === 'syncing' ? ' · دا أزامن...' : i.state === 'error' ? ' · ' + i.lastErr : '');
+  const dot = $('#syncDot'); if (dot) dot.textContent = i.user ? (i.state === 'error' ? '⚠️' : '☁️') : '';
+}
+$('#btnSignIn').onclick = () => Sync.signIn($('#syncEmail').value.trim(), $('#syncPass').value, false);
+$('#btnSignUp').onclick = () => Sync.signIn($('#syncEmail').value.trim(), $('#syncPass').value, true);
+$('#btnResetPass').onclick = () => { const e = $('#syncEmail').value.trim(); if (!e) return toast('اكتب الإيميل أول'); Sync.reset(e); };
+$('#btnSyncNow').onclick = () => Sync.push();
+$('#btnSignOut').onclick = () => { if (confirm('تطلع من الحساب؟ البيانات تبقى بهذا الجوال.')) Sync.signOut(); };
+$('#btnSaveConfig').onclick = () => {
+  const t = $('#fbConfig').value;
+  // يقبل الكود اللي ينسخ من Firebase كما هو (const firebaseConfig = {...})
+  const m = t.match(/\{[\s\S]*\}/);
+  try {
+    const obj = Function('return (' + m[0] + ')')();
+    if (!obj.apiKey || !obj.projectId) throw 0;
+    localStorage.setItem('mandaba-fbconfig', JSON.stringify(obj)); toast('تم الحفظ'); Sync.init();
+  } catch (e) { toast('الكود مو صحيح، انسخ firebaseConfig كامل'); }
+};
+
 function render() {
   const [t, s] = VIEWS[currentView]();
   $('#pageTitle').textContent = t; $('#pageSub').textContent = s;
-  renderHome(); renderCustomers(); renderProblems(); renderSettings(); renderMap();
+  renderHome(); renderCustomers(); renderProblems(); renderSettings(); renderMap(); renderSync();
   if (currentView === 'customer') renderCustomer();
 }
-save(); // يحفظ الشكل الجديد بعد التحويل
+persist(); // يحفظ الشكل الجديد بعد التحويل
 render();
 document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
+Sync.init();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
