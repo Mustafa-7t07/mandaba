@@ -1,4 +1,4 @@
-const CACHE = 'mandaba-v5';
+const CACHE = 'mandaba-v6';
 const TILES = 'mandaba-tiles-osm'; // اسم جديد يمسح صور CARTO الغلط القديمة
 const ASSETS = ['./', 'index.html', 'style.css', 'app.js', 'firebase-config.js', 'manifest.json', 'icon.svg', 'icon-192.png',
   'vendor/leaflet/leaflet.css', 'vendor/leaflet/leaflet.js'];
@@ -26,7 +26,8 @@ self.addEventListener('fetch', e => {
   if (url.hostname === 'tile.openstreetmap.org') return e.respondWith(tile(e.request));
   if (url.origin !== location.origin) return;
   // ملفات التطبيق: الشبكة أولاً حتى توصل التحديثات، وإذا ماكو نت من الكاش
-  e.respondWith(fetch(e.request).then(r => {
+  // no-cache: يتأكد من السيرفر كل مرة، فالتحديثات توصل فوراً بدل ما يبقى على نسخة قديمة 10 دقايق
+  e.respondWith(fetch(e.request.url, { cache: 'no-cache', credentials: 'same-origin' }).then(r => {
     const copy = r.clone();
     caches.open(CACHE).then(c => c.put(e.request, copy));
     return r;
