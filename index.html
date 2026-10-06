@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0f766e">
+<meta name="theme-color" content="#0f3d33">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="مندوب">
 <title>مندوب الصيدليات</title>
 <link rel="manifest" href="manifest.json">
@@ -15,41 +16,66 @@
 </head>
 <body>
 <header class="top">
-  <h1 id="pageTitle">اليوم</h1>
+  <h1 id="pageTitle">جولاتي</h1>
+  <p id="pageSub"></p>
 </header>
 
 <main>
-  <!-- اليوم -->
-  <section id="tab-today" class="tab active">
-    <p class="date" id="todayDate"></p>
-    <h2>زيارات اليوم</h2>
-    <div id="todayList"></div>
-    <h2 class="late-h" id="lateTitle">متأخرة</h2>
-    <div id="lateList"></div>
-    <h2>القادمة (7 أيام)</h2>
-    <div id="upcomingList"></div>
+  <!-- الرئيسية -->
+  <section id="view-home" class="view active">
+    <button class="btn wide route-btn" id="btnRouteToday">🧭 رتّب جولة اليوم على الخريطة</button>
+    <div id="homeProblems"></div>
+    <h2>📋 مهام اليوم والمتأخرة <span class="count" id="cntTasks">0</span></h2>
+    <div id="homeTasks"></div>
+    <h2>🔁 زيارات معتادة اليوم <span class="count" id="cntRegular">0</span></h2>
+    <div id="homeRegular"></div>
+    <h2>🗓️ القادمة (7 أيام)</h2>
+    <div id="homeUpcoming"></div>
   </section>
 
   <!-- الخريطة -->
-  <section id="tab-map" class="tab">
+  <section id="view-map" class="view">
     <div id="map"></div>
     <div class="map-tools">
       <button id="btnLocate" class="fab" title="موقعي">📍</button>
       <button id="btnAddHere" class="fab" title="إضافة صيدلية بموقعي">＋</button>
+      <button id="btnRoutePlan" class="fab fab-main" title="تخطيط جولة">🧭</button>
+    </div>
+    <div id="routeBar" class="route-bar" hidden>
+      <span id="routeBarText"></span>
+      <button class="btn small" id="btnRouteShow">القائمة</button>
+      <button class="btn small outline" id="btnRouteClear">✕</button>
     </div>
     <div id="mapHint" class="map-hint">اضغط مطوّل على الخريطة لإضافة صيدلية بذاك المكان</div>
   </section>
 
-  <!-- الصيدليات -->
-  <section id="tab-list" class="tab">
-    <input id="search" type="search" placeholder="بحث باسم الصيدلية أو المنطقة...">
-    <div id="pharmList"></div>
-    <button class="btn wide" id="btnNewPharm">＋ صيدلية جديدة</button>
+  <!-- الزبائن -->
+  <section id="view-customers" class="view">
+    <input id="search" type="search" placeholder="🔍 ابحث بالاسم أو الرقم">
+    <div id="areaChips" class="chips"></div>
+    <div id="custList"></div>
+    <button class="btn wide" id="btnNewPharm">＋ إضافة زبون جديد</button>
+  </section>
+
+  <!-- صفحة الزبون -->
+  <section id="view-customer" class="view">
+    <button class="back" id="btnBack">› رجوع للزبائن</button>
+    <div id="custBody"></div>
+  </section>
+
+  <!-- المشاكل -->
+  <section id="view-problems" class="view">
+    <button class="btn wide danger" id="btnNewProblem">＋ مشكلة جديدة</button>
+    <h2 class="red">مفتوحة <span class="count red" id="cntProblems">0</span></h2>
+    <div id="openProblems"></div>
+    <h2>محلولة مؤخراً</h2>
+    <div id="solvedProblems"></div>
   </section>
 
   <!-- الإعدادات -->
-  <section id="tab-more" class="tab">
-    <h2>المناطق</h2>
+  <section id="view-settings" class="view">
+    <h2>المناطق وأيام زيارتها</h2>
+    <p class="muted">حدد لكل منطقة أيام الزيارة، وراح تطلع صيدلياتها بالرئيسية بذاك اليوم.</p>
     <div id="areaList"></div>
     <div class="row">
       <input id="newArea" placeholder="اسم منطقة جديدة">
@@ -65,51 +91,90 @@
 </main>
 
 <nav class="bottom">
-  <button data-tab="today" class="active"><span>📅</span>اليوم</button>
-  <button data-tab="map"><span>🗺️</span>الخريطة</button>
-  <button data-tab="list"><span>💊</span>الصيدليات</button>
-  <button data-tab="more"><span>⚙️</span>المزيد</button>
+  <button data-view="home" class="active"><span>🏠</span>الرئيسية</button>
+  <button data-view="map"><span>🗺️</span>الخريطة</button>
+  <button data-view="customers"><span>👥</span>الزبائن</button>
+  <button data-view="problems"><span>⚠️</span>المشاكل<i id="navBadge" hidden></i></button>
+  <button data-view="settings"><span>⚙️</span>الإعدادات</button>
 </nav>
 
-<!-- نافذة الصيدلية -->
-<dialog id="dlgPharm">
+<!-- بيانات الزبون -->
+<dialog id="dlgPharm" class="sheet">
   <form method="dialog" id="formPharm">
-    <h2 id="dlgPharmTitle">صيدلية</h2>
-    <label>الاسم<input name="name" required></label>
-    <label>المنطقة<select name="area" id="areaSelect"></select></label>
-    <label>رقم الهاتف<input name="phone" type="tel" inputmode="tel"></label>
+    <div class="sheet-h"><h2 id="dlgPharmTitle">زبون جديد</h2><button class="x" value="cancel" formnovalidate>✕</button></div>
+    <label>اسم الصيدلية<input name="name" required></label>
+    <label>اسم الصيدلاني / المسؤول<input name="owner"></label>
     <div class="row">
-      <label>خط العرض<input name="lat" inputmode="decimal"></label>
-      <label>خط الطول<input name="lng" inputmode="decimal"></label>
+      <label>الهاتف<input name="phone" type="tel" inputmode="tel" dir="ltr"></label>
+      <label>هاتف ثاني<input name="phone2" type="tel" inputmode="tel" dir="ltr"></label>
     </div>
-    <button type="button" class="btn outline small" id="btnUseGps">📍 استخدم موقعي الحالي</button>
-    <label>رابط موقع (اختياري)<input name="link" type="url" placeholder="https://..."></label>
+    <label>المنطقة<select name="area" id="areaSelect"></select></label>
+    <label>العنوان / أقرب نقطة دالة<input name="address"></label>
+    <fieldset>
+      <legend>الموقع</legend>
+      <div class="row">
+        <label>خط العرض<input name="lat" inputmode="decimal" dir="ltr"></label>
+        <label>خط الطول<input name="lng" inputmode="decimal" dir="ltr"></label>
+      </div>
+      <button type="button" class="btn outline small" id="btnUseGps">📍 استخدم موقعي الحالي</button>
+      <label>أو الصق رابط الموقع (كوكل ماب / ويز)<input name="link" type="url" dir="ltr" placeholder="https://..."></label>
+    </fieldset>
+    <label>أيام الزيارة المعتادة</label>
+    <div class="days" id="pharmDays"></div>
     <label>ملاحظات<textarea name="notes" rows="3"></textarea></label>
-    <div class="dlg-actions">
-      <button class="btn" value="save">حفظ</button>
-      <button class="btn outline" value="cancel" formnovalidate>إلغاء</button>
-      <button type="button" class="btn danger" id="btnDelPharm">حذف</button>
-    </div>
+    <button class="btn wide" value="save">حفظ</button>
   </form>
 </dialog>
 
-<!-- تفاصيل الصيدلية -->
-<dialog id="dlgDetail">
-  <div id="detailBody"></div>
-</dialog>
-
-<!-- نافذة الزيارة -->
-<dialog id="dlgVisit">
-  <form method="dialog" id="formVisit">
-    <h2>زيارة / مهمة</h2>
-    <p id="visitPharmName" class="muted"></p>
+<!-- مهمة -->
+<dialog id="dlgTask" class="sheet">
+  <form method="dialog" id="formTask">
+    <div class="sheet-h"><h2>مهمة جديدة</h2><button class="x" value="cancel" formnovalidate>✕</button></div>
+    <label>مرتبطة بزبون (اختياري)<select name="pharmacyId" class="pharmSelect"></select></label>
+    <label>نص المهمة<input name="text" required placeholder="مثال: تحديد موعد تسديد"></label>
     <label>التاريخ<input name="date" type="date" required></label>
-    <label>شنو المطلوب<textarea name="text" rows="3" placeholder="مثلاً: تسليم طلبية، تحصيل مبلغ..."></textarea></label>
-    <div class="dlg-actions">
-      <button class="btn" value="save">حفظ</button>
-      <button class="btn outline" value="cancel" formnovalidate>إلغاء</button>
-    </div>
+    <button class="btn wide" value="save">حفظ المهمة</button>
   </form>
+</dialog>
+
+<!-- تسجيل زيارة -->
+<dialog id="dlgLog" class="sheet">
+  <form method="dialog" id="formLog">
+    <div class="sheet-h"><h2>تسجيل زيارة</h2><button class="x" value="cancel" formnovalidate>✕</button></div>
+    <p id="logPharmName" class="muted"></p>
+    <label>التاريخ<input name="date" type="date" required></label>
+    <label>شنو صار بالزيارة<textarea name="note" rows="3" placeholder="مثال: طلب 10 كارتون، تسديد 500 ألف..."></textarea></label>
+    <label>موعد الزيارة الجاية (اختياري)<input name="next" type="date"></label>
+    <button class="btn wide" value="save">حفظ الزيارة</button>
+  </form>
+</dialog>
+
+<!-- مشكلة -->
+<dialog id="dlgProblem" class="sheet">
+  <form method="dialog" id="formProblem">
+    <div class="sheet-h"><h2>مشكلة جديدة</h2><button class="x" value="cancel" formnovalidate>✕</button></div>
+    <label>مرتبطة بزبون (اختياري)<select name="pharmacyId" class="pharmSelect"></select></label>
+    <label>وصف المشكلة<textarea name="text" rows="3" required></textarea></label>
+    <button class="btn wide danger" value="save">حفظ المشكلة</button>
+  </form>
+</dialog>
+
+<!-- تخطيط جولة -->
+<dialog id="dlgRoute" class="sheet">
+  <form method="dialog" id="formRoute">
+    <div class="sheet-h"><h2>🧭 تخطيط جولة</h2><button class="x" value="cancel" formnovalidate>✕</button></div>
+    <label>يا صيدليات؟<select name="source" id="routeSource"></select></label>
+    <label>البداية<select name="start" id="routeStart"></select></label>
+    <label>النهاية<select name="end" id="routeEnd"></select></label>
+    <p class="muted">التطبيق يرتبهن من الأقرب للأبعد حسب الطرق، ويرسم الطريق على الخريطة.</p>
+    <button class="btn wide" value="save">رتّب الجولة</button>
+  </form>
+</dialog>
+
+<!-- قائمة الجولة -->
+<dialog id="dlgRouteList" class="sheet">
+  <div class="sheet-h"><h2>الجولة</h2><button class="x" data-close-dlg="dlgRouteList">✕</button></div>
+  <div id="routeListBody"></div>
 </dialog>
 
 <div id="toast"></div>

@@ -1,4 +1,4 @@
-const CACHE = 'mandaba-v1';
+const CACHE = 'mandaba-v2';
 const ASSETS = ['./', 'index.html', 'style.css', 'app.js', 'manifest.json', 'icon.svg', 'icon-192.png',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'];
 self.addEventListener('install', e => {
@@ -9,7 +9,7 @@ self.addEventListener('activate', e => {
 });
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
-  if (e.request.method !== 'GET' || url.hostname.includes('tile.openstreetmap.org')) return;
+  if (e.request.method !== 'GET' || url.hostname.includes('tile.openstreetmap.org') || url.hostname.includes('project-osrm.org')) return;
   // الشبكة أولاً، وإذا ماكو نت ناخذ من الكاش
   e.respondWith(fetch(e.request).then(r => {
     const copy = r.clone();
