@@ -1,0 +1,55 @@
+:root{--p:#0f766e;--pl:#ccfbf1;--bg:#f4f6f8;--card:#fff;--tx:#1f2937;--mu:#6b7280;--dg:#dc2626;--wn:#d97706;--nav:64px}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;background:var(--bg);color:var(--tx);font-size:16px}
+.top{position:sticky;top:0;z-index:500;background:var(--p);color:#fff;padding:calc(env(safe-area-inset-top) + 10px) 16px 10px}
+.top h1{margin:0;font-size:20px}
+main{padding-bottom:calc(var(--nav) + env(safe-area-inset-bottom) + 16px)}
+.tab{display:none;padding:12px 16px}
+.tab.active{display:block}
+#tab-map{padding:0}
+#map{height:calc(100vh - var(--nav) - 52px - env(safe-area-inset-bottom) - env(safe-area-inset-top));height:calc(100dvh - var(--nav) - 52px - env(safe-area-inset-bottom) - env(safe-area-inset-top));width:100%}
+.map-tools{position:fixed;left:16px;bottom:calc(var(--nav) + env(safe-area-inset-bottom) + 16px);display:flex;flex-direction:column;gap:10px;z-index:600}
+.tab:not(.active) .map-tools,.tab:not(.active) .map-hint{display:none}
+.fab{width:52px;height:52px;border-radius:50%;border:0;background:#fff;box-shadow:0 2px 8px #0003;font-size:22px}
+.map-hint{position:fixed;top:calc(env(safe-area-inset-top) + 64px);right:12px;left:64px;background:#000a;color:#fff;font-size:13px;padding:6px 10px;border-radius:8px;z-index:600;text-align:center}
+h2{font-size:17px;margin:18px 0 8px}
+.date{color:var(--mu);margin:0}
+.muted{color:var(--mu);font-size:14px}
+.card{background:var(--card);border-radius:12px;padding:12px;margin-bottom:10px;box-shadow:0 1px 3px #0001}
+.card .t{font-weight:600}
+.card .s{color:var(--mu);font-size:14px;margin-top:2px}
+.card .acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.card.late{border-right:4px solid var(--dg)}
+.card.done{opacity:.55}
+.card.done .t{text-decoration:line-through}
+.empty{color:var(--mu);text-align:center;padding:14px;background:var(--card);border-radius:12px}
+.area-h{display:flex;justify-content:space-between;align-items:center;background:var(--pl);color:var(--p);font-weight:700;padding:8px 12px;border-radius:10px;margin:14px 0 8px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--p);color:#fff;border:0;border-radius:10px;padding:10px 14px;font-size:15px;font-family:inherit;cursor:pointer;text-decoration:none}
+.btn.outline{background:#fff;color:var(--p);border:1px solid var(--p)}
+.btn.danger{background:var(--dg)}
+.btn.small{padding:6px 10px;font-size:14px}
+.btn.waze{background:#33ccff;color:#05374a}
+.btn.wide{width:100%;margin-top:10px}
+input,select,textarea{width:100%;font:inherit;padding:10px;border:1px solid #d1d5db;border-radius:10px;background:#fff;margin-top:4px}
+label{display:block;margin-bottom:10px;font-size:14px;color:var(--mu)}
+.row{display:flex;gap:8px;align-items:flex-end}
+.row>*{flex:1}
+.row .btn{flex:0 0 auto}
+nav.bottom{position:fixed;bottom:0;right:0;left:0;height:calc(var(--nav) + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom);background:#fff;border-top:1px solid #e5e7eb;display:flex;z-index:700}
+nav.bottom button{flex:1;border:0;background:none;font:inherit;font-size:12px;color:var(--mu);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+nav.bottom button span{font-size:20px}
+nav.bottom button.active{color:var(--p);font-weight:700}
+dialog{border:0;border-radius:16px;padding:16px;width:min(94vw,480px);max-height:90vh;overflow:auto}
+dialog::backdrop{background:#0006}
+dialog h2{margin-top:0}
+.dlg-actions{display:flex;gap:8px;margin-top:8px}
+.dlg-actions .btn{flex:1}
+.visit-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #eee;font-size:14px}
+.visit-row input{width:auto;margin:0}
+#toast{position:fixed;bottom:calc(var(--nav) + 20px);left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:8px 14px;border-radius:20px;font-size:14px;opacity:0;transition:.3s;z-index:2000;pointer-events:none}
+#toast.show{opacity:1}
+.leaflet-popup-content{font-family:inherit;text-align:right}
+.leaflet-popup-content .btn{margin-top:6px;padding:6px 10px;font-size:13px}
+.pin-me{width:16px;height:16px;border-radius:50%;background:#2563eb;border:3px solid #fff;box-shadow:0 0 0 2px #2563eb55}
+.notes{white-space:pre-wrap;background:var(--bg);padding:8px;border-radius:8px;font-size:14px}

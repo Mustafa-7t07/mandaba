@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="مندوب">
+<title>مندوب الصيدليات</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <h1 id="pageTitle">اليوم</h1>
+</header>
+
+<main>
+  <!-- اليوم -->
+  <section id="tab-today" class="tab active">
+    <p class="date" id="todayDate"></p>
+    <h2>زيارات اليوم</h2>
+    <div id="todayList"></div>
+    <h2 class="late-h" id="lateTitle">متأخرة</h2>
+    <div id="lateList"></div>
+    <h2>القادمة (7 أيام)</h2>
+    <div id="upcomingList"></div>
+  </section>
+
+  <!-- الخريطة -->
+  <section id="tab-map" class="tab">
+    <div id="map"></div>
+    <div class="map-tools">
+      <button id="btnLocate" class="fab" title="موقعي">📍</button>
+      <button id="btnAddHere" class="fab" title="إضافة صيدلية بموقعي">＋</button>
+    </div>
+    <div id="mapHint" class="map-hint">اضغط مطوّل على الخريطة لإضافة صيدلية بذاك المكان</div>
+  </section>
+
+  <!-- الصيدليات -->
+  <section id="tab-list" class="tab">
+    <input id="search" type="search" placeholder="بحث باسم الصيدلية أو المنطقة...">
+    <div id="pharmList"></div>
+    <button class="btn wide" id="btnNewPharm">＋ صيدلية جديدة</button>
+  </section>
+
+  <!-- الإعدادات -->
+  <section id="tab-more" class="tab">
+    <h2>المناطق</h2>
+    <div id="areaList"></div>
+    <div class="row">
+      <input id="newArea" placeholder="اسم منطقة جديدة">
+      <button class="btn" id="btnAddArea">إضافة</button>
+    </div>
+    <h2>نسخة احتياطية</h2>
+    <p class="muted">البيانات محفوظة على هذا الجوال فقط. سوّي نسخة احتياطية بين فترة وفترة حتى ما تضيع.</p>
+    <button class="btn wide" id="btnExport">⬇️ تصدير نسخة احتياطية</button>
+    <label class="btn wide outline">⬆️ استيراد نسخة احتياطية
+      <input type="file" id="fileImport" accept="application/json,.json" hidden>
+    </label>
+  </section>
+</main>
+
+<nav class="bottom">
+  <button data-tab="today" class="active"><span>📅</span>اليوم</button>
+  <button data-tab="map"><span>🗺️</span>الخريطة</button>
+  <button data-tab="list"><span>💊</span>الصيدليات</button>
+  <button data-tab="more"><span>⚙️</span>المزيد</button>
+</nav>
+
+<!-- نافذة الصيدلية -->
+<dialog id="dlgPharm">
+  <form method="dialog" id="formPharm">
+    <h2 id="dlgPharmTitle">صيدلية</h2>
+    <label>الاسم<input name="name" required></label>
+    <label>المنطقة<select name="area" id="areaSelect"></select></label>
+    <label>رقم الهاتف<input name="phone" type="tel" inputmode="tel"></label>
+    <div class="row">
+      <label>خط العرض<input name="lat" inputmode="decimal"></label>
+      <label>خط الطول<input name="lng" inputmode="decimal"></label>
+    </div>
+    <button type="button" class="btn outline small" id="btnUseGps">📍 استخدم موقعي الحالي</button>
+    <label>رابط موقع (اختياري)<input name="link" type="url" placeholder="https://..."></label>
+    <label>ملاحظات<textarea name="notes" rows="3"></textarea></label>
+    <div class="dlg-actions">
+      <button class="btn" value="save">حفظ</button>
+      <button class="btn outline" value="cancel" formnovalidate>إلغاء</button>
+      <button type="button" class="btn danger" id="btnDelPharm">حذف</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- تفاصيل الصيدلية -->
+<dialog id="dlgDetail">
+  <div id="detailBody"></div>
+</dialog>
+
+<!-- نافذة الزيارة -->
+<dialog id="dlgVisit">
+  <form method="dialog" id="formVisit">
+    <h2>زيارة / مهمة</h2>
+    <p id="visitPharmName" class="muted"></p>
+    <label>التاريخ<input name="date" type="date" required></label>
+    <label>شنو المطلوب<textarea name="text" rows="3" placeholder="مثلاً: تسليم طلبية، تحصيل مبلغ..."></textarea></label>
+    <div class="dlg-actions">
+      <button class="btn" value="save">حفظ</button>
+      <button class="btn outline" value="cancel" formnovalidate>إلغاء</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
