@@ -69,6 +69,16 @@ function regularOn(dateStr) {
   return db.pharmacies.filter(p => p.days.includes(dow) || (areaOf(p.area)?.days || []).includes(dow));
 }
 const openTasks = () => db.visits.filter(v => !v.done);
+// عمر أقدم فاتورة: نحفظ تاريخ بدايتها، فالعمر يزيد وحده كل يوم
+const invAge = p => p.invoiceStart ? Math.max(0, Math.round((parse(ymd()) - parse(p.invoiceStart)) / 864e5)) : null;
+// 1 = تنبيه أول (20-25 يوم)، 2 = تنبيه ثاني (40 يوم وفوق، يبقى لحد ما تصفّر)
+const invLevel = a => a == null ? 0 : a >= 40 ? 2 : (a >= 20 && a <= 25) ? 1 : 0;
+const invoiceAlerts = () => db.pharmacies.filter(p => invLevel(invAge(p))).sort((a, b) => invAge(b) - invAge(a));
+function invChip(p) {
+  const a = invAge(p); if (a == null) return '';
+  const lv = invLevel(a);
+  return `<span class="inv lv${lv}">🧾 ${a} يوم</span>`;
+}
 
 // ================= التنقل =================
 const VIEWS = {
@@ -122,14 +132,26 @@ function regularCard(p) {
       <button class="btn small outline" data-open="${p.id}">التفاصيل</button>
     </div></div>`;
 }
+function invoiceCard(p) {
+  const a = invAge(p), w = wazeUrl(p);
+  return `<div class="card inv-card lv${invLevel(a)}">
+    <div class="t">🧾 فاتورة عمرها ${a} يوم</div>
+    <div class="s">${badge(p.area)} <a href="#" data-open="${p.id}">${esc(p.name)}</a></div>
+    <div class="acts">
+      <button class="btn small" data-invreset="${p.id}">↺ تصفير العداد</button>
+      ${w ? `<a class="btn small waze" href="${w}" target="_blank" rel="noopener">🚗 ويز</a>` : ''}
+      ${p.phone ? `<a class="btn small outline" href="${telUrl(p.phone)}">📞</a>` : ''}
+    </div></div>`;
+}
 function renderHome() {
   const today = ymd(), week = addDays(7);
   const probs = db.problems.filter(x => !x.resolved);
   $('#homeProblems').innerHTML = probs.length
     ? `<h2 class="red">⚠️ مشاكل عالقة <span class="count red">${probs.length}</span></h2>` + probs.map(problemCard).join('') : '';
   const tasks = db.visits.filter(v => (v.date <= today && !v.done) || (v.date === today && v.done)).sort((a, b) => a.date.localeCompare(b.date));
-  $('#cntTasks').textContent = tasks.filter(v => !v.done).length;
-  $('#homeTasks').innerHTML = tasks.length ? tasks.map(v => taskCard(v)).join('') : '<div class="empty">ماكو مهام اليوم 👌</div>';
+  const inv = invoiceAlerts();
+  $('#cntTasks').textContent = tasks.filter(v => !v.done).length + inv.length;
+  $('#homeTasks').innerHTML = inv.length + tasks.length ? inv.map(invoiceCard).join('') + tasks.map(v => taskCard(v)).join('') : '<div class="empty">ماكو مهام اليوم 👌</div>';
   const reg = regularOn(today).sort((a, b) => visitedOn(a.id, today) - visitedOn(b.id, today));
   $('#cntRegular').textContent = reg.filter(p => !visitedOn(p.id, today)).length;
   $('#homeRegular').innerHTML = reg.length ? reg.map(regularCard).join('') : '<div class="empty">لا توجد زيارات معتادة مجدولة اليوم</div>';
@@ -152,7 +174,7 @@ function renderCustomers() {
     return `<div class="card click" data-open="${p.id}"><div>
       <div class="t">${esc(p.name)}</div>
       ${p.phone ? `<div class="s" dir="ltr" style="justify-content:flex-end">${esc(p.phone)}</div>` : ''}
-      <div class="s">${badge(p.area)} ${lv ? 'آخر زيارة ' + short(lv) : ''} ${hasLoc(p) ? '' : '<span title="بدون موقع">📍✗</span>'}</div>
+      <div class="s">${badge(p.area)} ${invChip(p)} ${lv ? 'آخر زيارة ' + short(lv) : ''} ${hasLoc(p) ? '' : '<span title="بدون موقع">📍✗</span>'}</div>
     </div></div>`;
   }).join('') : '<div class="empty">ماكو زبائن هنا بعد</div>';
 }
@@ -177,6 +199,7 @@ function renderCustomer() {
       ${p.phone2 ? `<div class="r"><span class="k">هاتف ثاني</span><span class="v"><a href="${telUrl(p.phone2)}" dir="ltr">${esc(p.phone2)}</a></span></div>` : ''}
       ${p.address ? `<div class="r"><span class="k">العنوان</span><span class="v">${esc(p.address)}</span></div>` : ''}
       <div class="r"><span class="k">الموقع</span><span class="v">${g ? `<a href="${esc(g)}" target="_blank" rel="noopener">فتح في الخرائط</a>` : '<span class="muted">ما محدد</span>'}</span></div>
+      <div class="r"><span class="k">أقدم فاتورة</span><span class="v">${invAge(p) == null ? '<span class="muted">ماكو</span>' : `${invChip(p)} <button class="btn small outline" data-invreset="${p.id}">↺ تصفير</button>`}</span></div>
       <div class="r"><span class="k">زيارة معتادة</span><span class="v">${days || '<span class="muted">—</span>'}</span></div>
       ${p.notes ? `<div class="r"><span class="k">ملاحظات</span><span class="v notes">${esc(p.notes)}</span></div>` : ''}
     </div>
@@ -240,8 +263,12 @@ $('#btnAddArea').onclick = () => {
 let map, markers, meMarker, routeLayer;
 function initMap() {
   if (map) return;
-  map = L.map('map').setView(db.center, db.zoom);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
+  map = L.map('map', { preferCanvas: true, zoomAnimation: true }).setView(db.center, db.zoom);
+  // خرائط CARTO أسرع من سيرفر OpenStreetMap الرئيسي، وتنحفظ بالجوال بعد أول فتح (sw.js)
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
+    subdomains: 'abcd', maxZoom: 19, detectRetina: false, updateWhenIdle: true, keepBuffer: 4,
+    attribution: '© OpenStreetMap © CARTO',
+  }).addTo(map);
   markers = L.layerGroup().addTo(map);
   routeLayer = L.layerGroup().addTo(map);
   map.on('moveend', () => { const c = map.getCenter(); db.center = [c.lat, c.lng]; db.zoom = map.getZoom(); save(); });
@@ -479,6 +506,7 @@ function openPharmForm(id, preset = {}) {
   fillAreaSelect(p.area);
   PFIELDS.forEach(k => f.elements[k].value = p[k] || '');
   $('#pharmDays').innerHTML = daysPicker('pdays', p.days || []);
+  f.elements.invAge.value = invAge(p) ?? '';
   $('#dlgPharm').showModal();
 }
 $('#formPharm').elements.link.addEventListener('input', e => {
@@ -495,6 +523,8 @@ $('#dlgPharm').addEventListener('close', () => {
   const data = Object.fromEntries(PFIELDS.map(k => [k, f.elements[k].value.trim()]));
   data.area = f.elements.area.value === '__new' ? db.areas[0].name : f.elements.area.value;
   data.days = [...f.querySelectorAll('input[name=pdays]:checked')].map(x => +x.value);
+  const ia = f.elements.invAge.value.trim();
+  data.invoiceStart = ia === '' ? '' : addDays(-Math.max(0, parseInt(ia, 10) || 0));
   if (editingId) Object.assign(pharm(editingId), data);
   else { const p = { id: uid(), created: ymd(), ...data }; db.pharmacies.push(p); currentId = p.id; }
   save(); render(); toast('تم الحفظ');
@@ -547,7 +577,7 @@ $('#btnNewProblem').onclick = () => openProblemForm(null);
 
 // ================= الأزرار العامة =================
 document.addEventListener('click', e => {
-  const el = e.target.closest('[data-open],[data-done],[data-edit],[data-log],[data-addtask],[data-report],[data-solve],[data-unsolve],[data-delitem],[data-delpharm],[data-chip],[data-del-area],[data-rename-area],[data-close-dlg]');
+  const el = e.target.closest('[data-open],[data-done],[data-edit],[data-log],[data-addtask],[data-report],[data-solve],[data-unsolve],[data-delitem],[data-delpharm],[data-chip],[data-del-area],[data-rename-area],[data-close-dlg],[data-invreset]');
   if (!el) return;
   const d = el.dataset;
   if (d.open) { e.preventDefault(); document.querySelectorAll('dialog[open]').forEach(x => x.close()); map && map.closePopup(); show('customer', d.open); }
@@ -590,6 +620,11 @@ document.addEventListener('click', e => {
     a.name = n; save(); render();
   }
   else if (d.closeDlg) $('#' + d.closeDlg).close();
+  else if (d.invreset) {
+    const p = pharm(d.invreset);
+    if (!confirm(`تصفّر عداد أقدم فاتورة لـ ${p.name}؟`)) return;
+    p.invoiceStart = ymd(); save(); render(); toast('صار العداد 0');
+  }
 });
 
 // ================= نسخ احتياطي =================

@@ -11,7 +11,8 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="preconnect" href="https://a.basemaps.cartocdn.com">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -119,6 +120,8 @@
       <button type="button" class="btn outline small" id="btnUseGps">📍 استخدم موقعي الحالي</button>
       <label>أو الصق رابط الموقع (كوكل ماب / ويز)<input name="link" type="url" dir="ltr" placeholder="https://..."></label>
     </fieldset>
+    <label>عمر أقدم فاتورة (أيام)<input name="invAge" type="number" min="0" inputmode="numeric" placeholder="مثال: 8 — اتركه فارغ إذا ماكو فاتورة"></label>
+    <p class="muted" style="margin-top:-6px">العداد يزيد وحده كل يوم، وتطلع تنبيه بالمهام من 20 لـ 25 يوم، ومن يوصل 40 يوم.</p>
     <label>أيام الزيارة المعتادة</label>
     <div class="days" id="pharmDays"></div>
     <label>ملاحظات<textarea name="notes" rows="3"></textarea></label>
@@ -178,7 +181,7 @@
 </dialog>
 
 <div id="toast"></div>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="app.js"></script>
+<script src="vendor/leaflet/leaflet.js" defer></script>
+<script src="app.js" defer></script>
 </body>
 </html>
