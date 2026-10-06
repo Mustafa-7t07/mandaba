@@ -263,10 +263,14 @@ $('#btnAddArea').onclick = () => {
 let map, markers, meMarker, routeLayer;
 function initMap() {
   if (map) return;
-  map = L.map('map', { preferCanvas: true, zoomAnimation: true }).setView(db.center, db.zoom);
+  // الخريطة محصورة على بغداد: ما تطلع برّه ولا تصغر للعالم كله، فتنزل مربعات أقل
+  const BAGHDAD = L.latLngBounds([32.95, 43.95], [33.70, 44.80]);
+  const center = BAGHDAD.contains(db.center) ? db.center : [33.3152, 44.3661];
+  map = L.map('map', { preferCanvas: true, zoomAnimation: true, maxBounds: BAGHDAD, maxBoundsViscosity: 1, minZoom: 10 })
+    .setView(center, Math.max(db.zoom, 10));
   // خرائط CARTO أسرع من سيرفر OpenStreetMap الرئيسي، وتنحفظ بالجوال بعد أول فتح (sw.js)
   L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
-    subdomains: 'abcd', maxZoom: 19, detectRetina: false, updateWhenIdle: true, keepBuffer: 4,
+    subdomains: 'abcd', maxZoom: 19, minZoom: 10, bounds: BAGHDAD, detectRetina: false, updateWhenIdle: true, keepBuffer: 4,
     attribution: '© OpenStreetMap © CARTO',
   }).addTo(map);
   markers = L.layerGroup().addTo(map);
